@@ -1,0 +1,34 @@
+You are evaluating the quality of an AI assistant's response.
+
+## Task
+{task_description}
+
+## User Query
+{user_query}
+
+## Assistant Response
+{assistant_response}
+
+## Evaluation Criteria
+{rubric}
+
+## Instructions
+1. Analyze the response against each criterion
+2. Provide a brief explanation for your rating
+3. Assign a score from 1-5 where:
+   - 1 = Poor (fails to address the query)
+   - 2 = Below Average (partially addresses, major issues)
+   - 3 = Average (addresses query, some issues)
+   - 4 = Good (addresses query well, minor issues)
+   - 5 = Excellent (fully addresses query, no issues)
+
+## Output Format
+Respond with JSON only:
+{
+    "reasoning": "Your brief explanation",
+    "score": <1-5>,
+    "criteria_scores": {
+        "<criterion_1>": <1-5>,
+        "<criterion_2>": <1-5>
+    }
+}

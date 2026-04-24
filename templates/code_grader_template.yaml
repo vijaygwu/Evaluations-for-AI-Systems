@@ -1,0 +1,66 @@
+# Code-Based Grader Template
+# Book 6, Appendix C: Eval Template Library
+#
+# Use this template to define code-based graders for your evals.
+# Copy and modify for your specific use case.
+
+grader:
+  name: "my_eval_grader"
+  type: "code_based"
+  version: "1.0"
+
+# Grader configuration
+config:
+  # Match mode: "exact", "fuzzy", "regex", "json"
+  match_mode: "exact"
+
+  # Normalization options
+  case_sensitive: false
+  strip_whitespace: true
+
+  # For regex mode
+  pattern: null  # e.g., "(?i)Answer:\\s*(.+)"
+
+  # For JSON mode
+  ignore_key_order: true
+  ignore_extra_keys: false
+
+# Reference answers (for exact/fuzzy matching)
+references:
+  - "correct answer 1"
+  - "correct answer 2"
+  - "alternative correct answer"
+
+# Scoring
+scoring:
+  # Binary: 0 or 1
+  # Partial: Allow partial credit
+  mode: "binary"
+
+  # For partial scoring
+  partial_credit:
+    contains_key_insight: 0.5
+    correct_format: 0.25
+    fully_correct: 1.0
+
+# Metadata
+metadata:
+  description: "Grader for evaluating X task"
+  author: "Your Name"
+  created: "2026-01-01"
+  chapter_reference: "Chapter 3"
+
+# Example usage in Python:
+#
+# from graders.code_based import ExactMatchGrader
+# import yaml
+#
+# with open("code_grader_template.yaml") as f:
+#     config = yaml.safe_load(f)
+#
+# grader = ExactMatchGrader(
+#     case_sensitive=config["config"]["case_sensitive"],
+#     strip_whitespace=config["config"]["strip_whitespace"]
+# )
+#
+# result = grader.grade(completion, config["references"])

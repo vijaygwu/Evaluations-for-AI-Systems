@@ -1,0 +1,126 @@
+# Agent Trajectory Evaluation Template
+# Book 6, Chapter 8: Agent Evaluation Fundamentals
+#
+# Template for evaluating agent trajectories (multi-step interactions)
+
+eval:
+  name: "agent_task_eval"
+  type: "trajectory"
+  version: "1.0"
+
+# Task definition
+task:
+  description: "Agent must complete X task using available tools"
+  goal: "Achieve Y outcome"
+  max_steps: 20
+  timeout_seconds: 300
+
+# Available tools for the agent
+tools:
+  - name: "search"
+    description: "Search for information"
+    required: false
+  - name: "calculate"
+    description: "Perform calculations"
+    required: true
+  - name: "submit"
+    description: "Submit final answer"
+    required: true
+
+# Success criteria
+success_criteria:
+  # Goal completion
+  goal_achieved: true
+
+  # Optional: specific tool usage requirements
+  required_tool_calls:
+    - tool: "calculate"
+      min_calls: 1
+    - tool: "submit"
+      min_calls: 1
+      max_calls: 1
+
+  # Optional: trajectory constraints
+  trajectory_constraints:
+    max_steps: 20
+    max_tool_errors: 2
+    no_repeated_failed_calls: true
+
+# Scoring rubric
+scoring:
+  # Weight for goal achievement (0-1)
+  goal_weight: 0.6
+
+  # Weight for efficiency (0-1)
+  efficiency_weight: 0.2
+
+  # Weight for trajectory quality (0-1)
+  quality_weight: 0.2
+
+  # Efficiency scoring
+  efficiency:
+    optimal_steps: 5
+    acceptable_steps: 10
+    penalty_per_extra_step: 0.05
+
+  # Quality scoring
+  quality:
+    - criterion: "correct_tool_selection"
+      weight: 0.4
+    - criterion: "correct_parameters"
+      weight: 0.3
+    - criterion: "result_interpretation"
+      weight: 0.3
+
+# Grading approach
+grading:
+  # "goal_only": Only check if goal achieved
+  # "trajectory": Score full trajectory
+  # "hybrid": Goal + trajectory quality
+  mode: "hybrid"
+
+  # For LLM-based grading of trajectory
+  llm_judge:
+    enabled: true
+    model: "claude-3-sonnet-20240229"
+    prompt_template: |
+      Evaluate this agent trajectory for the task: {task_description}
+
+      Trajectory:
+      {trajectory}
+
+      Score the trajectory on:
+      1. Goal achievement (did the agent complete the task?)
+      2. Efficiency (did the agent take a reasonable path?)
+      3. Tool usage (did the agent use tools correctly?)
+
+      Respond with JSON:
+      {
+        "goal_achieved": true/false,
+        "efficiency_score": 1-5,
+        "tool_usage_score": 1-5,
+        "reasoning": "explanation"
+      }
+
+# Example test cases
+test_cases:
+  - id: "basic_calculation"
+    input:
+      user_query: "What is 15% of 340?"
+    expected:
+      goal: "Return 51"
+      required_tools: ["calculate"]
+
+  - id: "multi_step"
+    input:
+      user_query: "Find the average of these prices and calculate 20% discount"
+    expected:
+      goal: "Return correct discounted average"
+      required_tools: ["calculate"]
+      min_steps: 2
+
+# Metadata
+metadata:
+  description: "Evaluate agent's ability to complete calculation tasks"
+  author: "Your Name"
+  chapter_reference: "Chapter 8"
