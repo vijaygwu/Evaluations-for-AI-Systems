@@ -1,130 +1,185 @@
-# Evaluations for AI Systems
+# Evaluations for AI Systems - Companion Code
 
-**Companion code repository for Book 6 of The AI Engineer's Library**
+This repository contains working Python code examples for "Evaluations for AI Systems" (Book 6 in The AI Engineer's Library series).
 
-This repository contains runnable code examples, grader implementations, statistical utilities, and eval templates from the book "Evaluations for AI Systems."
+## Repository Structure
 
-## Installation
-
-```bash
-pip install -e .
+```
+companion-code/
+├── ch01_fundamentals/       # Why evals matter
+│   └── eval_basics.py       # Basic evaluation concepts
+├── ch02_anatomy/            # Anatomy of an eval
+│   └── eval_triple.py       # Input-output-grader pattern
+├── ch03_graders/            # Grader taxonomy
+│   ├── exact_match.py       # String matching graders
+│   ├── semantic_similarity.py # Embedding-based graders
+│   ├── llm_as_judge.py      # Model-based grading
+│   └── code_execution.py    # Execution-based grading
+├── ch04_statistics/         # Statistical rigor
+│   ├── sample_size.py       # Sample size calculations
+│   ├── confidence_intervals.py # CI computation
+│   └── significance_tests.py # Hypothesis testing
+├── ch05_datasets/           # Dataset design
+│   └── dataset_builder.py   # Test case generation
+├── ch08_agents/             # Agent evaluation
+│   ├── trajectory_scorer.py # Multi-step scoring
+│   └── tool_use_eval.py     # Tool call verification
+├── ch13_safety/             # Safety evaluation
+│   ├── red_team_patterns.py # Attack pattern detection
+│   └── prompt_injection.py  # Injection defense testing
+├── ch23_rag/                # RAG evaluation
+│   ├── retrieval_metrics.py # Precision, recall, MRR
+│   ├── faithfulness.py      # Answer faithfulness scoring
+│   └── ragas_integration.py # RAGAS library usage
+└── utils/                   # Shared utilities
+    ├── __init__.py
+    └── llm_clients.py       # API client wrappers
 ```
 
-Or install dependencies directly:
+## Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Repository Structure
+## Required Dependencies
 
 ```
-.
-├── graders/                    # Chapter 3: Grader implementations
-│   ├── code_based/            # Exact match, fuzzy match, regex, JSON
-│   ├── model_based/           # LLM-as-judge, rubric graders
-│   └── hybrid/                # Cascade graders
-│
-├── statistics/                 # Chapter 4: Statistical utilities
-│   ├── sample_size.py         # NIST formula implementation
-│   ├── confidence_intervals.py
-│   └── clustering.py
-│
-├── datasets/                   # Chapter 5: Dataset utilities
-│   ├── stratified_sampler.py
-│   └── contamination_check.py
-│
-├── flywheel/                   # Chapter 6: Eval flywheel
-│   ├── runner.py
-│   └── transcript_analyzer.py
-│
-├── agents/                     # Chapters 8-9: Agent evaluation
-│   ├── trajectory_scorer.py
-│   └── tool_use_evaluator.py
-│
-├── safety/                     # Chapters 13-15: Safety evaluation
-│   ├── red_team_harness.py
-│   └── sabotage_detector.py
-│
-├── templates/                  # Appendix C: Eval templates
-│   ├── code_grader_template.yaml
-│   ├── llm_judge_prompt.txt
-│   └── agent_trajectory_eval.yaml
-│
-├── examples/                   # Worked examples from chapters
-│   └── ...
-│
-└── tests/                      # Test suite
-    └── ...
+openai>=1.0.0
+anthropic>=0.18.0
+sentence-transformers>=2.2.0
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+ragas>=0.1.0
+langchain>=0.1.0
+pandas>=2.0.0
+```
+
+## Environment Variables
+
+Set up your API keys:
+
+```bash
+export OPENAI_API_KEY="your-openai-key"
+export ANTHROPIC_API_KEY="your-anthropic-key"
 ```
 
 ## Quick Start
 
-### Code-Based Graders (Chapter 3)
+### 1. Basic Graders (Chapter 3)
 
 ```python
-from graders.code_based import ExactMatchGrader, FuzzyMatchGrader
+from ch03_graders.exact_match import ExactMatchGrader
+from ch03_graders.semantic_similarity import SemanticSimilarityGrader
+from ch03_graders.llm_as_judge import LLMJudge
 
-# Exact match
-grader = ExactMatchGrader()
-result = grader.grade("42", references=["42", "forty-two"])
-print(result)  # {'pass': True, 'score': 1.0, 'matched_reference': '42'}
+# Exact match for classification tasks
+grader = ExactMatchGrader(normalize=True)
+score = grader.grade("POSITIVE", "positive")  # 1.0
 
-# Fuzzy match
-grader = FuzzyMatchGrader()
-result = grader.grade("The answer is 42", references=["42"])
-print(result)  # {'pass': True, 'score': 1.0, ...}
-```
-
-### Sample Size Calculator (Chapter 4)
-
-```python
-from statistics.sample_size import nist_sample_size, margin_of_error_sample_size
-
-# How many samples to detect 10% -> 20% shift?
-n = nist_sample_size(p0=0.10, p1=0.20)
-print(f"Required N = {n}")  # ~102
-
-# How many samples for ±5% margin of error?
-n = margin_of_error_sample_size(margin=0.05)
-print(f"Required N = {n}")  # ~385
-```
-
-### LLM Judge (Chapter 3)
-
-```python
-from graders.model_based import LLMJudge
-
-judge = LLMJudge(model="claude-3-sonnet-20240229")
-result = judge.grade(
-    task="Answer the user's question helpfully",
-    user_query="What is the capital of France?",
-    response="The capital of France is Paris.",
-    rubric=["accuracy", "completeness", "clarity"]
+# Semantic similarity for paraphrase detection
+grader = SemanticSimilarityGrader(threshold=0.8)
+score = grader.grade(
+    "The cat sat on the mat",
+    "A feline rested on the rug"
 )
-print(result)  # {'score': 5, 'reasoning': '...'}
+
+# LLM-as-judge for subjective quality
+judge = LLMJudge(rubric="helpfulness")
+result = judge.grade(
+    question="How do I reset my password?",
+    response="Click 'Forgot Password' on the login page..."
+)
 ```
 
-## Book Reference
+### 2. Statistical Analysis (Chapter 4)
 
-Each module corresponds to chapters in the book:
+```python
+from ch04_statistics.sample_size import calculate_sample_size
+from ch04_statistics.significance_tests import compare_proportions
 
-| Module | Chapter |
-|--------|---------|
-| `graders/` | Ch 3: Grader Taxonomy |
-| `statistics/` | Ch 4: Statistical Rigor |
-| `datasets/` | Ch 5: Eval Dataset Design |
-| `flywheel/` | Ch 6: The Eval Flywheel |
-| `agents/` | Ch 8-9: Agent Evaluation |
-| `safety/` | Ch 13-15: Safety & Red-Teaming |
-| `templates/` | Appendix C: Eval Templates |
+# How many samples to detect a 5% improvement?
+n = calculate_sample_size(baseline=0.80, mde=0.05, power=0.80)
+
+# Is the improvement statistically significant?
+result = compare_proportions(
+    successes_a=160, total_a=200,  # 80% accuracy
+    successes_b=176, total_b=200   # 88% accuracy
+)
+print(f"p-value: {result.p_value:.4f}")
+```
+
+### 3. RAG Evaluation (Chapter 23)
+
+```python
+from ch23_rag.retrieval_metrics import precision_at_k, recall_at_k, mrr
+from ch23_rag.faithfulness import FaithfulnessScorer
+
+# Retrieval quality
+retrieved = ["doc1", "doc2", "doc3", "doc4", "doc5"]
+relevant = {"doc1", "doc3", "doc7"}
+print(f"Precision@5: {precision_at_k(retrieved, relevant, k=5)}")
+print(f"Recall@5: {recall_at_k(retrieved, relevant, k=5)}")
+
+# Answer faithfulness
+scorer = FaithfulnessScorer()
+result = scorer.score(
+    question="What is the capital of France?",
+    answer="Paris is the capital of France.",
+    context="France is a country in Europe. Paris is its capital city."
+)
+```
+
+### 4. Agent Trajectory Evaluation (Chapter 8)
+
+```python
+from ch08_agents.trajectory_scorer import TrajectoryScorer
+
+scorer = TrajectoryScorer()
+trajectory = [
+    {"action": "search", "params": {"query": "weather NYC"}, "result": "72F sunny"},
+    {"action": "respond", "content": "The weather in NYC is 72F and sunny."}
+]
+result = scorer.score(
+    goal="Get current weather in New York",
+    trajectory=trajectory
+)
+```
+
+## Running Examples
+
+Each module can be run standalone:
+
+```bash
+# Run grader examples
+python -m ch03_graders.exact_match
+python -m ch03_graders.llm_as_judge
+
+# Run statistical examples
+python -m ch04_statistics.sample_size
+
+# Run RAG evaluation examples
+python -m ch23_rag.retrieval_metrics
+```
+
+## Chapter Coverage
+
+| Chapter | Topic | Examples |
+|---------|-------|----------|
+| 1 | Why Evals Matter | Basic concepts |
+| 2 | Anatomy of an Eval | Eval triple pattern |
+| 3 | Grader Taxonomy | Exact, semantic, LLM-as-judge |
+| 4 | Statistical Rigor | Sample size, CIs, hypothesis tests |
+| 5 | Dataset Design | Test case generation |
+| 8 | Agent Evaluation | Trajectory scoring, tool use |
+| 13 | Red-Teaming | Attack patterns, injection tests |
+| 23 | RAG Evaluation | Retrieval metrics, faithfulness |
+
+## Contributing
+
+See the main book repository for contribution guidelines.
 
 ## License
 
-MIT License - see LICENSE file.
-
-## Author
-
-Vijay Raghavan
-
-Part of **The AI Engineer's Library** series.
+MIT License - See LICENSE file for details.
