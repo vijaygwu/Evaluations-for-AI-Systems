@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="evaluations-for-ai-systems",
     version="0.1.0",
-    description="Companion code for Book 6: Evaluations for AI Systems",
+    description="Companion code for Book 6: Beyond Vibes",
     author="Vijay Raghavan",
     author_email="vijay@example.com",
     url="https://github.com/vijaygwu/Evaluations-for-AI-Systems",

@@ -13,16 +13,6 @@ Book Reference: Chapter 13 covers adversarial evaluation -
 Red-teaming tests whether systems can be made to fail."
 """
 
-from .red_team_patterns import (
-    AttackPattern,
-    AttackDetector,
-    generate_attack_variations,
-)
-from .prompt_injection import (
-    InjectionDetector,
-    test_injection_resistance,
-)
-
 __all__ = [
     "AttackPattern",
     "AttackDetector",
@@ -30,3 +20,23 @@ __all__ = [
     "InjectionDetector",
     "test_injection_resistance",
 ]
+
+_EXPORTS = {
+    "AttackPattern": ".red_team_patterns",
+    "AttackDetector": ".red_team_patterns",
+    "generate_attack_variations": ".red_team_patterns",
+    "InjectionDetector": ".prompt_injection",
+    "test_injection_resistance": ".prompt_injection",
+}
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    from importlib import import_module
+
+    module = import_module(_EXPORTS[name], __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value

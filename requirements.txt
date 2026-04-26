@@ -1,4 +1,4 @@
-# Core dependencies for Evaluations for AI Systems companion code
+# Core dependencies for Beyond Vibes companion code
 
 # LLM API clients
 openai>=1.0.0

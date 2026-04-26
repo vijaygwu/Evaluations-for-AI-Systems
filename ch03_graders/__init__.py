@@ -12,10 +12,6 @@ prefer code-based when possible, escalate to LLM-as-judge
 for subjective quality, reserve human eval for calibration.
 """
 
-from .exact_match import ExactMatchGrader, FuzzyMatchGrader, JsonMatchGrader
-from .semantic_similarity import SemanticSimilarityGrader
-from .llm_as_judge import LLMJudge, RubricGrader
-
 __all__ = [
     "ExactMatchGrader",
     "FuzzyMatchGrader",
@@ -24,3 +20,24 @@ __all__ = [
     "LLMJudge",
     "RubricGrader",
 ]
+
+_EXPORTS = {
+    "ExactMatchGrader": ".exact_match",
+    "FuzzyMatchGrader": ".exact_match",
+    "JsonMatchGrader": ".exact_match",
+    "SemanticSimilarityGrader": ".semantic_similarity",
+    "LLMJudge": ".llm_as_judge",
+    "RubricGrader": ".llm_as_judge",
+}
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    from importlib import import_module
+
+    module = import_module(_EXPORTS[name], __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value

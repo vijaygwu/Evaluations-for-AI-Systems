@@ -1,15 +1,11 @@
-# Evaluations for AI Systems - Companion Code
+# Beyond Vibes - Companion Code
 
-This repository contains working Python code examples for "Evaluations for AI Systems" (Book 6 in The AI Engineer's Library series).
+This repository contains working Python code examples for "Beyond Vibes" (Book 6 in The AI Engineer's Library series).
 
 ## Repository Structure
 
 ```
 companion-code/
-├── ch01_fundamentals/       # Why evals matter
-│   └── eval_basics.py       # Basic evaluation concepts
-├── ch02_anatomy/            # Anatomy of an eval
-│   └── eval_triple.py       # Input-output-grader pattern
 ├── ch03_graders/            # Grader taxonomy
 │   ├── exact_match.py       # String matching graders
 │   ├── semantic_similarity.py # Embedding-based graders
@@ -19,8 +15,6 @@ companion-code/
 │   ├── sample_size.py       # Sample size calculations
 │   ├── confidence_intervals.py # CI computation
 │   └── significance_tests.py # Hypothesis testing
-├── ch05_datasets/           # Dataset design
-│   └── dataset_builder.py   # Test case generation
 ├── ch08_agents/             # Agent evaluation
 │   ├── trajectory_scorer.py # Multi-step scoring
 │   └── tool_use_eval.py     # Tool call verification
@@ -167,11 +161,8 @@ python -m ch23_rag.retrieval_metrics
 
 | Chapter | Topic | Examples |
 |---------|-------|----------|
-| 1 | Why Evals Matter | Basic concepts |
-| 2 | Anatomy of an Eval | Eval triple pattern |
 | 3 | Grader Taxonomy | Exact, semantic, LLM-as-judge |
 | 4 | Statistical Rigor | Sample size, CIs, hypothesis tests |
-| 5 | Dataset Design | Test case generation |
 | 8 | Agent Evaluation | Trajectory scoring, tool use |
 | 13 | Red-Teaming | Attack patterns, injection tests |
 | 23 | RAG Evaluation | Retrieval metrics, faithfulness |

@@ -11,15 +11,6 @@ Book Reference: Chapter 23 covers the unique challenges of RAG evaluation -
 "you are evaluating a pipeline, not just a model."
 """
 
-from .retrieval_metrics import (
-    precision_at_k,
-    recall_at_k,
-    mean_reciprocal_rank,
-    ndcg_at_k,
-)
-from .faithfulness import FaithfulnessScorer, GroundednessChecker
-from .ragas_integration import RAGASEvaluator
-
 __all__ = [
     "precision_at_k",
     "recall_at_k",
@@ -29,3 +20,25 @@ __all__ = [
     "GroundednessChecker",
     "RAGASEvaluator",
 ]
+
+_EXPORTS = {
+    "precision_at_k": ".retrieval_metrics",
+    "recall_at_k": ".retrieval_metrics",
+    "mean_reciprocal_rank": ".retrieval_metrics",
+    "ndcg_at_k": ".retrieval_metrics",
+    "FaithfulnessScorer": ".faithfulness",
+    "GroundednessChecker": ".faithfulness",
+    "RAGASEvaluator": ".ragas_integration",
+}
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    from importlib import import_module
+
+    module = import_module(_EXPORTS[name], __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
