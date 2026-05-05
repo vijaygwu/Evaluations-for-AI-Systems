@@ -297,7 +297,7 @@ class JsonMatchGrader(BaseGrader):
 
     def _compare_values(self, expected: Any, actual: Any) -> bool:
         """Recursively compare JSON values."""
-        if type(expected) != type(actual):
+        if not isinstance(actual, type(expected)):
             return False
 
         if isinstance(expected, dict):

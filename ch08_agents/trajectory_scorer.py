@@ -17,7 +17,7 @@ were reasonable, whether it recovered from errors appropriately,
 and whether it avoided harmful or incorrect actions along the way."
 """
 
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional, Callable, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import json
@@ -117,7 +117,7 @@ class TrajectoryScorer:
         trajectory: List[AgentAction],
         goal: str,
         success_criteria: Optional[Callable] = None,
-    ) -> tuple[bool, float]:
+    ) -> Tuple[bool, float]:
         """
         Evaluate whether the goal was achieved.
 

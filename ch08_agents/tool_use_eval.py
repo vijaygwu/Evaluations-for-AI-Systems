@@ -13,7 +13,7 @@ Key Aspects:
 - Error Handling: Did the agent handle errors appropriately?
 """
 
-from typing import List, Dict, Any, Optional, Set, Callable
+from typing import List, Dict, Any, Optional, Set, Callable, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -116,7 +116,7 @@ class ToolUseEvaluator:
         actual_tool: str,
         expected_tool: Optional[str],
         context: Optional[str] = None,
-    ) -> tuple[bool, List[ToolUseError]]:
+    ) -> Tuple[bool, List[ToolUseError]]:
         """
         Evaluate whether the correct tool was selected.
 
@@ -141,7 +141,7 @@ class ToolUseEvaluator:
         actual_params: Dict[str, Any],
         expected_params: Optional[Dict[str, Any]],
         tool_name: Optional[str] = None,
-    ) -> tuple[bool, List[ToolUseError]]:
+    ) -> Tuple[bool, List[ToolUseError]]:
         """
         Evaluate parameter correctness.
 
@@ -172,8 +172,10 @@ class ToolUseEvaluator:
         for key, expected_value in expected_params.items():
             actual_value = actual_params.get(key)
 
-            # Type check
-            if type(actual_value) != type(expected_value):
+            # Type check (allow int/float interchangeability for numeric values)
+            if isinstance(expected_value, (int, float)) and isinstance(actual_value, (int, float)):
+                pass  # Both numeric, compatible types
+            elif not isinstance(actual_value, type(expected_value)):
                 errors.append(ToolUseError.TYPE_ERROR)
                 return False, errors
 
@@ -193,7 +195,7 @@ class ToolUseEvaluator:
         tool_result: Any,
         agent_interpretation: Optional[str],
         expected_extraction: Optional[Any] = None,
-    ) -> tuple[bool, List[ToolUseError]]:
+    ) -> Tuple[bool, List[ToolUseError]]:
         """
         Evaluate whether the agent correctly interpreted tool results.
 
@@ -220,7 +222,7 @@ class ToolUseEvaluator:
         self,
         tool_error: Optional[str],
         agent_response: Optional[str],
-    ) -> tuple[bool, List[ToolUseError]]:
+    ) -> Tuple[bool, List[ToolUseError]]:
         """
         Evaluate whether errors were handled appropriately.
         """

@@ -17,7 +17,7 @@ Dependencies:
 """
 
 import re
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any, Literal, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -195,7 +195,7 @@ Evaluate the coherence and clarity of the response on a scale of 1-5:
 
         return "\n".join(prompt_parts)
 
-    def _parse_response(self, response: str) -> tuple[str, str]:
+    def _parse_response(self, response: str) -> Tuple[str, str]:
         """Parse the judge's response to extract reasoning and grade."""
         reasoning = ""
         grade = ""

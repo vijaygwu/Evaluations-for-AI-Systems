@@ -57,7 +57,7 @@ class CodeEvalResult:
     pass_at_k: Optional[float] = None
 
 
-class TimeoutError(Exception):
+class ExecutionTimeoutError(Exception):
     """Raised when code execution times out."""
     pass
 
@@ -70,7 +70,7 @@ def timeout(seconds: float):
     Uses SIGALRM on Unix systems. Falls back to no timeout on Windows.
     """
     def timeout_handler(signum, frame):
-        raise TimeoutError(f"Execution timed out after {seconds} seconds")
+        raise ExecutionTimeoutError(f"Execution timed out after {seconds} seconds")
 
     # Only works on Unix
     if hasattr(signal, 'SIGALRM'):
@@ -227,7 +227,7 @@ class CodeExecutionGrader:
                     execution_time_ms=execution_time
                 )
 
-        except TimeoutError as e:
+        except ExecutionTimeoutError as e:
             return ExecutionResult(
                 passed=False,
                 output=None,

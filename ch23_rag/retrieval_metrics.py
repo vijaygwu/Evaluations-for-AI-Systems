@@ -219,7 +219,8 @@ def dcg_at_k(
     dcg = 0.0
     for i, doc in enumerate(retrieved[:k]):
         relevance = relevance_scores.get(doc, 0.0)
-        # Position is i+1 (1-indexed), discount is log2(i+2) to avoid log(1)=0
+        # i is 0-indexed; log2(i+2) equals log2(position+1) for 1-indexed position
+        # This matches the textbook formula: rel_i / log2(i+1) where i is 1-indexed
         dcg += relevance / math.log2(i + 2)
 
     return dcg
