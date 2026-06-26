@@ -19,6 +19,8 @@ __all__ = [
     "FaithfulnessScorer",
     "GroundednessChecker",
     "RAGASEvaluator",
+    "evaluate_groundedness",
+    "detect_rag_hallucinations",
 ]
 
 _EXPORTS = {
@@ -29,6 +31,8 @@ _EXPORTS = {
     "FaithfulnessScorer": ".faithfulness",
     "GroundednessChecker": ".faithfulness",
     "RAGASEvaluator": ".ragas_integration",
+    "evaluate_groundedness": ".groundedness",
+    "detect_rag_hallucinations": ".groundedness",
 }
 
 

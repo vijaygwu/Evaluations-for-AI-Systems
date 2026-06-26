@@ -19,6 +19,11 @@ __all__ = [
     "SemanticSimilarityGrader",
     "LLMJudge",
     "RubricGrader",
+    "MultiAspectGrader",
+    "ConfidenceWeightedGrader",
+    "contrastive_grade",
+    "cosine_sim",
+    "StructuredExtractor",
 ]
 
 _EXPORTS = {
@@ -28,6 +33,11 @@ _EXPORTS = {
     "SemanticSimilarityGrader": ".semantic_similarity",
     "LLMJudge": ".llm_as_judge",
     "RubricGrader": ".llm_as_judge",
+    "MultiAspectGrader": ".advanced_graders",
+    "ConfidenceWeightedGrader": ".advanced_graders",
+    "contrastive_grade": ".advanced_graders",
+    "cosine_sim": ".advanced_graders",
+    "StructuredExtractor": ".advanced_graders",
 }
 
 
