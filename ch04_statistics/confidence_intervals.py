@@ -282,6 +282,9 @@ def difference_ci(
         >>> ci = difference_ci(160, 200, 170, 200)
         >>> print(f"Improvement: {ci}")
     """
+    if total_a <= 0 or total_b <= 0:
+        raise ValueError("total_a and total_b must both be positive")
+
     p_a = successes_a / total_a
     p_b = successes_b / total_b
     diff = p_b - p_a

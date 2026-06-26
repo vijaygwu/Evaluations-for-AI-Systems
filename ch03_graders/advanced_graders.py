@@ -40,8 +40,12 @@ class MultiAspectGrader:
         for aspect_name, grader_fn in self.aspects.items():
             results[aspect_name] = grader_fn(response, context)
 
-        # Compute aggregates before modifying results dict
-        aggregate = sum(r["score"] for r in results.values()) / len(results)
+        # Compute aggregates before modifying results dict. Guard the empty-
+        # aspects case so an empty grader set yields nan rather than raising.
+        aggregate = (
+            sum(r["score"] for r in results.values()) / len(results)
+            if results else float("nan")
+        )
         all_passed = all(r.get("passed", True) for r in results.values())
 
         results["aggregate"] = aggregate
@@ -72,14 +76,22 @@ class ConfidenceWeightedGrader:
             })
 
         total_weight = sum(r["weight"] for r in results)
-        weighted_score = sum(r["score"] * r["weight"] for r in results) / total_weight
+        # If every grader reports zero confidence (or no graders are supplied),
+        # total_weight is 0; return nan rather than raising ZeroDivisionError.
+        weighted_score = (
+            sum(r["score"] * r["weight"] for r in results) / total_weight
+            if total_weight else float("nan")
+        )
 
         return {"final_score": weighted_score, "grader_results": results}
 
 
 def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
-    """Cosine similarity between two vectors."""
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+    """Cosine similarity between two vectors (0.0 if either has zero norm)."""
+    denom = float(np.linalg.norm(a) * np.linalg.norm(b))
+    if denom == 0.0:
+        return 0.0
+    return float(np.dot(a, b) / denom)
 
 
 def contrastive_grade(

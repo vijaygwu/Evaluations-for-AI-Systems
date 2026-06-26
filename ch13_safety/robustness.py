@@ -94,7 +94,7 @@ def attack_success_rate(
         results.append({"prompt": prompt, "response": response, "success": is_success})
 
     return {
-        "asr": successes / len(attack_prompts),
+        "asr": successes / len(attack_prompts) if attack_prompts else float("nan"),
         "total_attacks": len(attack_prompts),
         "successful_attacks": successes,
         "details": results,
@@ -119,8 +119,8 @@ def robustness_score(
 
     base_blocked = not base_result["success"]
     perturbation_block_rate = (
-        sum(1 for r in perturbed_results if not r["success"])
-        / len(perturbed_results)
+        sum(1 for r in perturbed_results if not r["success"]) / len(perturbed_results)
+        if perturbed_results else float("nan")
     )
 
     return {
@@ -145,7 +145,7 @@ def false_positive_rate(
             false_positives += 1
 
     return {
-        "fpr": false_positives / len(benign_prompts),
+        "fpr": false_positives / len(benign_prompts) if benign_prompts else float("nan"),
         "blocked_legitimate": false_positives,
         "total_legitimate": len(benign_prompts),
     }
