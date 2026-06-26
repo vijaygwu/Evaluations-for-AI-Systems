@@ -416,9 +416,14 @@ class MultiTurnAutomator:
                 tool_name = action.get("tool")
                 params = action.get("params", {})
 
-                # Execute tool
+                # Execute tool. Isolate per-call failures: a handler raising
+                # should record a tool error and let the trajectory continue,
+                # not crash the whole multi-turn run.
                 if tool_name in self.tool_handlers:
-                    result = self.tool_handlers[tool_name](**params)
+                    try:
+                        result = self.tool_handlers[tool_name](**params)
+                    except Exception as e:
+                        result = {"error": f"Tool {tool_name!r} raised: {e}"}
                 else:
                     result = {"error": f"Unknown tool: {tool_name}"}
 

@@ -41,11 +41,14 @@ class FaithfulnessResult:
 @dataclass
 class GroundednessResult:
     """Result of groundedness check."""
-    score: float  # 0.0 to 1.0
+    score: float  # 0.0 to 1.0; float('nan') if the check errored
     grounded_sentences: int
     total_sentences: int
     hallucinated_content: List[str]
     explanation: str
+    # Set when the check failed; a failed check carries score=nan (NOT a
+    # plausible 0.5) so it cannot be silently averaged in as a real result.
+    error: Optional[str] = None
 
 
 class FaithfulnessScorer:
@@ -194,6 +197,7 @@ REASONING: [Brief explanation]
         answer: str,
         context: str,
         use_llm: bool = True,
+        max_claims: Optional[int] = 50,
     ) -> FaithfulnessResult:
         """
         Score the faithfulness of an answer to its context.
@@ -203,6 +207,10 @@ REASONING: [Brief explanation]
             answer: The RAG system's answer
             context: The retrieved context used to generate the answer
             use_llm: Whether to use LLM for claim extraction/verification
+            max_claims: When use_llm is True, cap the number of claims
+                verified via the LLM (one API call each) to bound per-call
+                cost and latency. None means no cap. Excess claims are
+                dropped and noted in the explanation.
 
         Returns:
             FaithfulnessResult with detailed scoring
@@ -233,6 +241,13 @@ REASONING: [Brief explanation]
                 claim_details=[],
                 explanation="No verifiable claims found in response"
             )
+
+        # Budget guard: each LLM verification is one API call, so cap the
+        # number of claims when use_llm to keep per-call cost/latency bounded.
+        truncated_claims = 0
+        if use_llm and max_claims is not None and len(claims) > max_claims:
+            truncated_claims = len(claims) - max_claims
+            claims = claims[:max_claims]
 
         # Verify each claim
         claim_details = []
@@ -284,6 +299,11 @@ REASONING: [Brief explanation]
             f"{contradicted}/{total} contradicted",
             f"{unverifiable}/{total} unverifiable",
         ]
+        if truncated_claims:
+            explanation_parts.append(
+                f"{truncated_claims} additional claim(s) skipped "
+                f"(max_claims={max_claims} budget)"
+            )
 
         return FaithfulnessResult(
             score=score,
@@ -394,12 +414,15 @@ OVERALL_SCORE: [0.0-1.0 representing fraction of grounded content]
             )
 
         except Exception as e:
+            # nan + error (not a plausible 0.5): a failed groundedness check
+            # must be detectable, not counted as a real middling score.
             return GroundednessResult(
-                score=0.5,
+                score=float("nan"),
                 grounded_sentences=0,
                 total_sentences=0,
                 hallucinated_content=[],
-                explanation=f"Error during check: {str(e)}"
+                explanation=f"Error during check: {str(e)}",
+                error=str(e),
             )
 
 

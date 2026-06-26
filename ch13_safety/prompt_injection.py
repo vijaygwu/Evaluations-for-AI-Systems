@@ -105,7 +105,13 @@ class InjectionDetector:
             custom_patterns: Additional patterns to detect
         """
         self.sensitivity = sensitivity
-        self.patterns = self.INJECTION_PATTERNS.copy()
+        # Deep-copy the per-type lists, not just the dict: a shallow .copy()
+        # leaves self.patterns[type] pointing at the shared class-level list,
+        # so extend() below would mutate INJECTION_PATTERNS for every instance.
+        self.patterns = {
+            injection_type: list(patterns)
+            for injection_type, patterns in self.INJECTION_PATTERNS.items()
+        }
 
         if custom_patterns:
             for injection_type, patterns in custom_patterns.items():

@@ -19,6 +19,14 @@ __all__ = [
     "generate_attack_variations",
     "InjectionDetector",
     "test_injection_resistance",
+    # Chapter 13 defense-evaluation metrics (robustness.py)
+    "OBFUSCATION_TECHNIQUES",
+    "generate_obfuscated_attacks",
+    "is_refusal",
+    "test_single_attack",
+    "attack_success_rate",
+    "robustness_score",
+    "false_positive_rate",
 ]
 
 _EXPORTS = {
@@ -27,6 +35,13 @@ _EXPORTS = {
     "generate_attack_variations": ".red_team_patterns",
     "InjectionDetector": ".prompt_injection",
     "test_injection_resistance": ".prompt_injection",
+    "OBFUSCATION_TECHNIQUES": ".robustness",
+    "generate_obfuscated_attacks": ".robustness",
+    "is_refusal": ".robustness",
+    "test_single_attack": ".robustness",
+    "attack_success_rate": ".robustness",
+    "robustness_score": ".robustness",
+    "false_positive_rate": ".robustness",
 }
 
 

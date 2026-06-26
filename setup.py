@@ -13,11 +13,18 @@ setup(
         "numpy>=1.21.0",
         "scipy>=1.7.0",
         "pyyaml>=6.0",
+        "tenacity>=8.0.0",
     ],
     extras_require={
         "llm": ["anthropic>=0.18.0", "openai>=1.0.0"],
         "dev": ["pytest>=7.0.0", "pytest-cov>=4.0.0"],
-        "all": ["anthropic>=0.18.0", "openai>=1.0.0", "pytest>=7.0.0"],
+        "all": [
+            "anthropic>=0.18.0",
+            "openai>=1.0.0",
+            "pytest>=7.0.0",
+            "sentence-transformers>=2.0.0",
+            "scikit-learn>=1.0.0",
+        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

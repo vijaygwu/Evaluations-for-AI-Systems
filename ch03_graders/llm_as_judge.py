@@ -39,12 +39,16 @@ class GradeLevel(Enum):
 @dataclass
 class JudgeResult:
     """Result from LLM-as-judge evaluation."""
-    score: float  # 0.0 to 1.0
+    score: float  # 0.0 to 1.0; float('nan') if the judge call errored
     grade: str  # Categorical grade (e.g., "CORRECT", "A", "5/5")
     reasoning: str  # Judge's explanation
     passed: bool  # Binary pass/fail
     raw_response: Optional[str] = None
     tokens_used: int = 0
+    # Set when the judge call failed. A failed judgment carries score=nan
+    # (NOT 0.0) so it cannot be silently averaged in as a real zero; callers
+    # should filter on `error is not None` before aggregating.
+    error: Optional[str] = None
 
 
 @dataclass
@@ -311,11 +315,16 @@ Evaluate the coherence and clarity of the response on a scale of 1-5:
             )
 
         except Exception as e:
+            # A judge failure (timeout, auth, truncated/unparseable response,
+            # network) is NOT the same as the model scoring zero. Return nan +
+            # an error string so it surfaces in aggregation instead of silently
+            # dragging the mean down as a real 0.0.
             return JudgeResult(
-                score=0.0,
+                score=float("nan"),
                 grade="ERROR",
                 reasoning=f"Judge failed: {str(e)}",
                 passed=False,
+                error=str(e),
             )
 
 
@@ -408,7 +417,17 @@ class RubricGrader:
                 response,
                 re.IGNORECASE
             )
-            score = int(score_match.group(1)) if score_match else 3
+            # Do NOT silently default a missing score to a middling 3; mark
+            # the dimension unparsed so it can be excluded from the aggregate
+            # and surfaced, rather than masquerading as a real mid score.
+            if score_match:
+                score = int(score_match.group(1))
+                normalized = (score - 1) / 4  # 1-5 -> 0-1
+                parsed = True
+            else:
+                score = None
+                normalized = None
+                parsed = False
 
             # Extract reason
             reason_match = re.search(
@@ -420,9 +439,10 @@ class RubricGrader:
 
             results[dim.name] = {
                 "score": score,
-                "normalized_score": (score - 1) / 4,  # 1-5 -> 0-1
+                "normalized_score": normalized,
                 "reason": reason,
                 "weight": dim.weight,
+                "parsed": parsed,
             }
 
         return results
@@ -470,24 +490,38 @@ class RubricGrader:
 
             dimension_scores = self._parse_scores(llm_response.content)
 
-            # Compute weighted aggregate
-            total_weight = sum(d.weight for d in self.dimensions)
-            weighted_sum = sum(
-                dimension_scores[d.name]["normalized_score"] * d.weight
-                for d in self.dimensions
-            )
-            aggregate_score = weighted_sum / total_weight if total_weight > 0 else 0.0
+            # Aggregate over only the dimensions whose score actually parsed.
+            # A missing dimension is excluded (not counted as a fake 3) and
+            # reported via "unparsed_dimensions"; if none parsed, score is nan.
+            parsed_dims = [d for d in self.dimensions
+                           if dimension_scores[d.name]["parsed"]]
+            unparsed = [d.name for d in self.dimensions
+                        if not dimension_scores[d.name]["parsed"]]
+            total_weight = sum(d.weight for d in parsed_dims)
+            if total_weight > 0:
+                weighted_sum = sum(
+                    dimension_scores[d.name]["normalized_score"] * d.weight
+                    for d in parsed_dims
+                )
+                aggregate_score = weighted_sum / total_weight
+            else:
+                aggregate_score = float("nan")
 
-            return {
+            result = {
                 "dimensions": dimension_scores,
                 "aggregate_score": aggregate_score,
                 "raw_response": llm_response.content,
             }
+            if unparsed:
+                result["unparsed_dimensions"] = unparsed
+            return result
 
         except Exception as e:
+            # nan (not 0.0): a grading failure must not be averaged in as a
+            # real zero. The "error" key lets callers filter failed grades.
             return {
                 "dimensions": {},
-                "aggregate_score": 0.0,
+                "aggregate_score": float("nan"),
                 "error": str(e),
             }
 
@@ -596,11 +630,14 @@ GRADE: [CORRECT/INCORRECT/NOT_ATTEMPTED]
             )
 
         except Exception as e:
+            # nan + error (not a real 0.0) so a failed grade is detectable and
+            # is not silently counted as the model scoring zero.
             return JudgeResult(
-                score=0.0,
+                score=float("nan"),
                 grade="ERROR",
                 reasoning=f"Grading failed: {str(e)}",
                 passed=False,
+                error=str(e),
             )
 
 

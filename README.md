@@ -20,7 +20,8 @@ companion-code/
 │   └── tool_use_eval.py     # Tool call verification
 ├── ch13_safety/             # Safety evaluation
 │   ├── red_team_patterns.py # Attack pattern detection
-│   └── prompt_injection.py  # Injection defense testing
+│   ├── prompt_injection.py  # Injection defense testing
+│   └── robustness.py        # Obfuscation attacks + defense metrics (ASR, robustness, FPR)
 ├── ch23_rag/                # RAG evaluation
 │   ├── retrieval_metrics.py # Precision, recall, MRR
 │   ├── faithfulness.py      # Answer faithfulness scoring

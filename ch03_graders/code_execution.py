@@ -68,6 +68,20 @@ def timeout(seconds: float):
     Context manager for execution timeout.
 
     Uses SIGALRM on Unix systems. Falls back to no timeout on Windows.
+
+    LIMITATIONS (important — do not rely on this for untrusted code):
+    - The alarm only interrupts Python bytecode between instructions, so it
+      CANNOT break out of a blocking C-extension call (e.g. a long
+      ``numpy`` op), a blocking syscall, or a spawned subprocess.
+    - ``signal.setitimer``/``SIGALRM`` only fire on the main thread; this is
+      a no-op if called from a worker thread.
+    - On Windows there is no timeout at all.
+
+    Robustly bounding wall-clock time for arbitrary code requires running it
+    in a separate process and killing that process on timeout (the same
+    process-isolation needed to actually sandbox untrusted code). Use a
+    container or subprocess-based runner for that; this helper only guards
+    against the common pure-Python infinite loop.
     """
     def timeout_handler(signum, frame):
         raise ExecutionTimeoutError(f"Execution timed out after {seconds} seconds")
