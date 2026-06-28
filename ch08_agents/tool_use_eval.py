@@ -360,9 +360,14 @@ class ToolUseEvaluator:
         """
         if agent_interpretations is None:
             agent_interpretations = [None] * len(tool_calls)
+        else:
+            # Copy so we never mutate the caller's list when padding below.
+            agent_interpretations = list(agent_interpretations)
 
         if expected_calls is None:
             expected_calls = [{}] * len(tool_calls)
+        else:
+            expected_calls = list(expected_calls)
 
         # Ensure lists are same length
         while len(agent_interpretations) < len(tool_calls):

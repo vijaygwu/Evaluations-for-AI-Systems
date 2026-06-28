@@ -15,6 +15,7 @@ Book Reference: Chapter 4 covers the statistical foundations -
 __all__ = [
     "calculate_sample_size",
     "sample_size_for_proportion",
+    "sample_size_for_margin_of_error",
     "proportion_ci",
     "mean_ci",
     "bootstrap_ci",
@@ -26,6 +27,7 @@ __all__ = [
 _EXPORTS = {
     "calculate_sample_size": ".sample_size",
     "sample_size_for_proportion": ".sample_size",
+    "sample_size_for_margin_of_error": ".sample_size",
     "proportion_ci": ".confidence_intervals",
     "mean_ci": ".confidence_intervals",
     "bootstrap_ci": ".confidence_intervals",

@@ -337,14 +337,15 @@ def permutation_test(
         TestResult with permutation-based p-value
 
     Example:
-        >>> np.random.seed(42)
         >>> model_a = [0.82, 0.85, 0.79, 0.83, 0.81]
         >>> model_b = [0.88, 0.87, 0.86, 0.89, 0.85]
-        >>> result = permutation_test(model_a, model_b)
+        >>> result = permutation_test(model_a, model_b, random_state=42)
         >>> print(f"p-value: {result.p_value:.4f}")
     """
-    if random_state is not None:
-        np.random.seed(random_state)
+    # Use a local RNG so we don't mutate (or depend on) NumPy's global random
+    # state. RandomState reproduces the legacy np.random sequence exactly, so
+    # results for a given random_state are unchanged.
+    rng = np.random.RandomState(random_state)
 
     scores_a = np.array(scores_a)
     scores_b = np.array(scores_b)
@@ -359,7 +360,7 @@ def permutation_test(
     # Permutation distribution
     perm_diffs = []
     for _ in range(n_permutations):
-        np.random.shuffle(pooled)
+        rng.shuffle(pooled)
         perm_a = pooled[:n_a]
         perm_b = pooled[n_a:]
         perm_diffs.append(np.mean(perm_b) - np.mean(perm_a))

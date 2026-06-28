@@ -210,8 +210,10 @@ def bootstrap_ci(
         >>> ci = bootstrap_ci(scores, statistic="median")
         >>> print(f"Median: {ci}")
     """
-    if random_state is not None:
-        np.random.seed(random_state)
+    # Local RNG: avoids mutating NumPy's global random state. RandomState
+    # reproduces the legacy np.random sequence, so a given random_state yields
+    # the same interval as before.
+    rng = np.random.RandomState(random_state)
 
     values = np.array(values)
     n = len(values)
@@ -232,7 +234,7 @@ def bootstrap_ci(
     # Bootstrap resampling
     bootstrap_stats = []
     for _ in range(n_bootstrap):
-        sample = np.random.choice(values, size=n, replace=True)
+        sample = rng.choice(values, size=n, replace=True)
         bootstrap_stats.append(stat_func(sample))
 
     bootstrap_stats = np.array(bootstrap_stats)

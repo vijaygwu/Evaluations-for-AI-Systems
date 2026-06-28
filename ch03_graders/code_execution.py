@@ -14,7 +14,9 @@ Key Metrics:
 - Timeout enforcement to prevent infinite loops
 
 Dependencies:
-    pip install RestrictedPython
+    None beyond the Python standard library. RestrictedPython is discussed in
+    the security notes below but is intentionally NOT imported or used here;
+    see the ``CodeExecutionGrader`` docstring for the sandbox caveats.
 """
 
 import sys
@@ -121,25 +123,43 @@ class CodeExecutionGrader:
     Book Reference: Chapter 3 - "HumanEval uses functional correctness testing:
     generated code is executed against test cases."
 
-    WARNING: Executing arbitrary code is inherently dangerous. This grader
-    uses basic sandboxing but is NOT suitable for untrusted code in production.
-    Consider using containerized execution (Docker) for real applications.
+    SECURITY WARNING: ``execute_code`` runs model-generated code with the
+    built-in ``exec()`` IN THE CURRENT PROCESS. This is a remote-code-
+    execution (RCE) vector. The ``restricted_execution`` sandbox below is a
+    *teaching illustration only*: a curated ``__builtins__`` dict does NOT
+    contain untrusted code, because the running code can walk the object
+    graph (e.g. ``().__class__.__base__.__subclasses__()``) to recover
+    ``open``, ``os``, etc. Despite the module docstring, RestrictedPython is
+    NOT imported or used here.
+
+    For untrusted or production code you MUST run candidates in an isolated
+    process or container with OS-enforced resource limits (e.g. Docker,
+    nsjail, or seccomp), or actually wire in RestrictedPython. To reduce the
+    chance of accidental misuse, the in-process ``exec()`` path is now
+    opt-in: you must pass ``allow_unsafe_exec=True`` to enable it, which
+    emits a loud runtime warning.
     """
 
     def __init__(
         self,
         timeout_seconds: float = 3.0,
         restricted_execution: bool = True,
+        allow_unsafe_exec: bool = False,
     ):
         """
         Initialize CodeExecutionGrader.
 
         Args:
             timeout_seconds: Maximum execution time per test (default 3.0s as per HumanEval)
-            restricted_execution: Use RestrictedPython for safer execution
+            restricted_execution: Use the (escapable) curated-builtins sandbox
+            allow_unsafe_exec: Must be True to permit the in-process exec()
+                path. Defaults to False because exec()'ing model output in
+                this process is an RCE vector (see class docstring). In
+                production, run candidates in a separate process/container.
         """
         self.timeout_seconds = timeout_seconds
         self.restricted_execution = restricted_execution
+        self.allow_unsafe_exec = allow_unsafe_exec
 
     def _create_sandbox(self) -> Dict[str, Any]:
         """Create a sandboxed execution environment."""
@@ -199,6 +219,21 @@ class CodeExecutionGrader:
             ExecutionResult with output or error
         """
         import time
+        import warnings
+        if not self.allow_unsafe_exec:
+            raise RuntimeError(
+                "Refusing to exec() model-generated code in-process: this "
+                "is an RCE vector and the curated-builtins sandbox is "
+                "trivially escapable. Run candidates in an isolated "
+                "process/container, or pass allow_unsafe_exec=True to "
+                "opt in (trusted code only)."
+            )
+        warnings.warn(
+            "CodeExecutionGrader is exec()'ing untrusted-looking code in "
+            "this process; the sandbox does NOT contain malicious code. "
+            "Use process/container isolation in production.",
+            stacklevel=2,
+        )
         start_time = time.time()
 
         try:
@@ -304,10 +339,29 @@ class CodeExecutionGrader:
         test_results = []
         passed_count = 0
 
+        # Global per-sample wall-clock budget. The per-test SIGALRM resets on
+        # every test, so without this a sample of N slow-but-under-timeout
+        # tests can run for N * timeout_seconds. NOTE: like the per-test
+        # timeout, this is a soft, cooperative bound (see timeout() docstring)
+        # and cannot interrupt a blocking C call; robust enforcement needs
+        # process/container isolation that the OS can kill.
+        import time
+        sample_deadline = time.time() + self.timeout_seconds * len(test_cases)
+
         for i, test_case in enumerate(test_cases):
             test_name = test_case.get('name', f'test_{i}')
             test_input = test_case.get('input')
             expected = test_case.get('expected')
+
+            if time.time() >= sample_deadline:
+                test_results.append(TestResult(
+                    test_name=test_name,
+                    passed=False,
+                    expected=expected,
+                    actual=None,
+                    error="Global per-sample time budget exceeded"
+                ))
+                continue
 
             # Execute
             exec_result = self.execute_code(code, test_input, entry_point)
@@ -410,16 +464,22 @@ class HumanEvalGrader:
     def __init__(
         self,
         timeout_seconds: float = 3.0,
-        k_values: List[int] = [1, 10, 100],
+        k_values: Optional[List[int]] = None,
     ):
         """
         Initialize HumanEvalGrader.
 
         Args:
             timeout_seconds: Timeout per test execution
-            k_values: Values of k for pass@k calculation
+            k_values: Values of k for pass@k calculation (defaults to [1, 10, 100])
         """
-        self.execution_grader = CodeExecutionGrader(timeout_seconds=timeout_seconds)
+        if k_values is None:
+            k_values = [1, 10, 100]
+        # allow_unsafe_exec=True: this is a trusted-input teaching demo; in
+        # production run candidates in an isolated process/container instead.
+        self.execution_grader = CodeExecutionGrader(
+            timeout_seconds=timeout_seconds, allow_unsafe_exec=True
+        )
         self.k_values = k_values
 
     def evaluate_samples(
@@ -489,7 +549,8 @@ if __name__ == "__main__":
     print("\n1. CodeExecutionGrader (Basic)")
     print("-" * 40)
 
-    grader = CodeExecutionGrader(timeout_seconds=3.0)
+    # allow_unsafe_exec=True: demo runs known-safe, hard-coded snippets.
+    grader = CodeExecutionGrader(timeout_seconds=3.0, allow_unsafe_exec=True)
 
     # Correct implementation
     correct_code = """

@@ -27,6 +27,7 @@ class RAGASResult:
     context_recall: float
     answer_correctness: Optional[float] = None
     overall_score: float = 0.0
+    note: Optional[str] = None
 
 
 class RAGASEvaluator:
@@ -211,12 +212,13 @@ class RAGASEvaluator:
                 recall = 0.5
             results["context_recall"].append(min(1.0, recall))
 
-        # Aggregate
+        # Aggregate. Return NaN (not 0.0) when a metric has no samples, so an
+        # empty/degenerate evaluation cannot masquerade as a real low score.
         return {
-            "faithfulness": sum(results["faithfulness"]) / len(results["faithfulness"]) if results["faithfulness"] else 0.0,
-            "answer_relevancy": sum(results["answer_relevancy"]) / len(results["answer_relevancy"]) if results["answer_relevancy"] else 0.0,
-            "context_precision": sum(results["context_precision"]) / len(results["context_precision"]) if results["context_precision"] else 0.0,
-            "context_recall": sum(results["context_recall"]) / len(results["context_recall"]) if results["context_recall"] else 0.0,
+            "faithfulness": sum(results["faithfulness"]) / len(results["faithfulness"]) if results["faithfulness"] else float("nan"),
+            "answer_relevancy": sum(results["answer_relevancy"]) / len(results["answer_relevancy"]) if results["answer_relevancy"] else float("nan"),
+            "context_precision": sum(results["context_precision"]) / len(results["context_precision"]) if results["context_precision"] else float("nan"),
+            "context_recall": sum(results["context_recall"]) / len(results["context_recall"]) if results["context_recall"] else float("nan"),
             "note": "Using fallback heuristic evaluation (RAGAS not available)",
             "per_sample": [
                 {
@@ -260,17 +262,24 @@ class RAGASEvaluator:
             ground_truths=ground_truths,
         )
 
+        # Default missing metrics to NaN (not 0.0), consistent with the batch
+        # path's nan-on-degenerate convention so a failed/empty eval cannot
+        # masquerade as a real low score.
+        nan = float("nan")
         return RAGASResult(
-            faithfulness=result.get("faithfulness", 0.0),
-            answer_relevancy=result.get("answer_relevancy", 0.0),
-            context_precision=result.get("context_precision", 0.0),
-            context_recall=result.get("context_recall", 0.0),
+            faithfulness=result.get("faithfulness", nan),
+            answer_relevancy=result.get("answer_relevancy", nan),
+            context_precision=result.get("context_precision", nan),
+            context_recall=result.get("context_recall", nan),
             overall_score=(
-                result.get("faithfulness", 0.0) +
-                result.get("answer_relevancy", 0.0) +
-                result.get("context_precision", 0.0) +
-                result.get("context_recall", 0.0)
+                result.get("faithfulness", nan) +
+                result.get("answer_relevancy", nan) +
+                result.get("context_precision", nan) +
+                result.get("context_recall", nan)
             ) / 4,
+            # Surface the degraded-evaluation signal the batch path sets when
+            # it falls back to heuristics (RAGAS unavailable / failed).
+            note=result.get("note"),
         )
 
 

@@ -3,9 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name="evaluations-for-ai-systems",
     version="0.1.0",
-    description="Companion code for Book 6: Beyond Vibes",
+    description="Companion code for 'Evaluations for AI Systems' (The AI Engineer's Library)",
     author="Vijay Raghavan",
-    author_email="vijay@example.com",
     url="https://github.com/vijaygwu/Evaluations-for-AI-Systems",
     packages=find_packages(),
     python_requires=">=3.9",
