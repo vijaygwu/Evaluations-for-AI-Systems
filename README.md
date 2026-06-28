@@ -1,14 +1,41 @@
 # Beyond Vibes — Companion Code
 
 [![CI](https://github.com/vijaygwu/Evaluations-for-AI-Systems/actions/workflows/ci.yml/badge.svg)](https://github.com/vijaygwu/Evaluations-for-AI-Systems/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 Working, tested Python implementations of the evaluation techniques in
 **_Beyond Vibes: Evaluating Generative and Agentic AI So You Can Ship Systems
 You Trust_** (Book 6 of *The AI Engineer's Library*, by Dr. Vijay Raghavan).
 
 The book shows **illustrative excerpts**; this repository is the **runnable,
-tested counterpart**. Where a chapter sketches an idea, the corresponding
-module here is the full, working version with error handling and tests.
+tested counterpart**. Where a chapter sketches an idea, the module here is the
+full version — with error handling, failure semantics, and tests that you can
+lift into your own evaluation harness.
+
+---
+
+## What makes this code production-aware
+
+These aren't throwaway snippets. The modules are written to behave correctly at
+the seams where real evaluation pipelines break:
+
+- **Failures don't masquerade as scores.** LLM judges, groundedness, and the
+  RAGAS fallback return `score=NaN` plus an `error` (never a silent `0.0`/`0.5`),
+  so a failed grade can't be averaged into a deceptively low mean.
+- **Untrusted code execution is opt-in.** `CodeExecutionGrader` gates the
+  in-process `exec()` path behind `allow_unsafe_exec=False` with a loud warning,
+  documents that the curated-`__builtins__` sandbox is escapable, and points to
+  process/container isolation for production. A global per-sample wall-clock
+  budget bounds total runtime (the per-test `SIGALRM` is a documented soft bound).
+- **Bounded resources.** `max_claims` caps LLM-call budgets; multi-turn agent
+  scoring is bounded by `max_turns` with per-handler exception isolation.
+- **Reproducible, side-effect-free statistics.** Bootstrap and permutation tests
+  use a local `np.random.RandomState` rather than mutating the global RNG;
+  degenerate inputs (empty lists, zero totals, `se == 0`) are guarded.
+- **Resilient I/O.** `call_llm()` plumbs per-request timeouts into both
+  providers and restricts retries to genuinely transient exceptions (auth and
+  validation errors are *not* retried and not masked).
 
 ---
 
@@ -23,8 +50,8 @@ module here is the full, working version with error handling and tests.
 │   ├── code_execution.py        #   Execution-based grading (pass@k, HumanEval)
 │   └── advanced_graders.py      #   Multi-aspect, confidence-weighted, contrastive, structured
 ├── ch04_statistics/             # Ch 4 — Statistical rigor
-│   ├── sample_size.py           #   Sample-size & power calculations
-│   ├── confidence_intervals.py  #   CI computation
+│   ├── sample_size.py           #   Sample-size & power (incl. margin-of-error)
+│   ├── confidence_intervals.py  #   Wald / Wilson / bootstrap CIs
 │   └── significance_tests.py    #   compare_proportions, paired t, McNemar, permutation
 ├── ch08_agents/                 # Ch 8 — Agent evaluation
 │   ├── trajectory_scorer.py     #   Multi-step trajectory scoring
@@ -60,14 +87,14 @@ module here is the full, working version with error handling and tests.
 pip install -r requirements.txt
 ```
 
-**Minimal install** (just to run the offline test suite / deterministic
-graders — heavy libs are lazy-loaded, so you don't need them for this):
+**Minimal install** — enough to run the offline test suite and the deterministic
+graders. The heavy libraries are lazy-loaded, so you don't need them here:
 
 ```bash
 pip install numpy scipy
 ```
 
-`python_requires >= 3.9`; CI tests on 3.10 / 3.11 / 3.12.
+Requires **Python 3.9+**; CI runs on 3.10 / 3.11 / 3.12.
 
 ### What runs offline vs. what needs API keys
 
@@ -77,8 +104,8 @@ pip install numpy scipy
 | Retrieval metrics (P@k, R@k, MRR, NDCG, MAP) | `FaithfulnessScorer`, `GroundednessChecker`, `CitationChecker` (LLM call) |
 | Sample size, CIs, significance tests | `SemanticSimilarityGrader` (needs `sentence-transformers`) |
 | Multi-aspect / confidence-weighted / contrastive graders | `RAGASEvaluator` (needs `ragas`) |
-| ch13 obfuscation + robustness metrics | — |
-| `evaluate_groundedness` (lexical) | `detect_rag_hallucinations` (needs an LLM judge callable) |
+| ch13 obfuscation + robustness metrics | `detect_rag_hallucinations` (needs an LLM judge callable) |
+| `evaluate_groundedness` (lexical) | — |
 
 For the LLM-backed graders, set your keys:
 
@@ -116,6 +143,7 @@ print(verdict.grade, verdict.score)
 from ch04_statistics.sample_size import calculate_sample_size
 from ch04_statistics.significance_tests import compare_proportions
 
+# How many samples to detect a 5-point improvement over an 80% baseline?
 n = calculate_sample_size(baseline=0.80, mde=0.05, power=0.80)
 
 result = compare_proportions(
@@ -128,7 +156,7 @@ print(result.p_value)
 ### RAG evaluation (Chapter 23)
 
 ```python
-from ch23_rag.retrieval_metrics import precision_at_k, recall_at_k, mean_reciprocal_rank
+from ch23_rag.retrieval_metrics import precision_at_k, mean_reciprocal_rank
 from ch23_rag.groundedness import evaluate_groundedness
 
 retrieved = ["doc1", "doc2", "doc3", "doc4", "doc5"]
@@ -167,9 +195,9 @@ The suite is layered so that **everything except live API calls runs offline**:
 
 | Layer | What it checks | How to run |
 |---|---|---|
-| **Syntax** | every module compiles (`py_compile`) | `python -m py_compile $(find . -name '*.py')` |
-| **Import smoke** | every module imports without the heavy libs | (see CI, or `python -c "import ch03_graders, ..."`) |
-| **Execution (mocked)** | the LLM- / embedder-backed functions run **end to end** with no keys | `python tests/test_execution.py` |
+| **Syntax** | every module compiles | `python -m py_compile $(find . -name '*.py')` |
+| **Import smoke** | every module imports without the heavy libs | (see CI) |
+| **Execution (mocked)** | the LLM-/embedder-backed functions run **end to end** with no keys | `python tests/test_execution.py` |
 
 ### Mocked execution tests (`tests/test_execution.py`)
 
@@ -200,8 +228,8 @@ pull request to `main`, across Python 3.10 / 3.11 / 3.12:
 3. run `tests/test_execution.py` (mocked end-to-end execution).
 
 The deterministic graders (exact match, retrieval metrics, sample sizing, ch13
-obfuscations) are additionally covered by the book's evaluation gauntlet
-(`grader_canaries`) in the manuscript repo.
+obfuscations) are additionally exercised by the book's evaluation gauntlet in
+the manuscript repo.
 
 ---
 
@@ -215,17 +243,18 @@ obfuscations) are additionally covered by the book's evaluation gauntlet
 | 13 | Red-teaming & safety | `red_team_patterns`, `prompt_injection`, `robustness` |
 | 23 | RAG evaluation | `retrieval_metrics`, `faithfulness`, `groundedness`, `ragas_integration` |
 
-The other chapters of the book are conceptual or use techniques covered by the
-modules above; this package targets the chapters with substantial, reusable code.
+The other chapters are conceptual or reuse the techniques above; this package
+targets the chapters with substantial, reusable code.
 
 ---
 
 ## Contributing
 
-This is companion code for the book. Issues and PRs that fix bugs or improve
-the examples are welcome; please keep changes consistent with the book's
-listings. See the main book repository for broader guidelines.
+This is companion code for the book. Issues and PRs that fix bugs or improve the
+examples are welcome — please keep changes consistent with the book's listings
+and the failure-handling conventions described above. See the main book
+repository for broader guidelines.
 
 ## License
 
-MIT License — see the `LICENSE` file for details.
+MIT License — see the [`LICENSE`](LICENSE) file for details.
